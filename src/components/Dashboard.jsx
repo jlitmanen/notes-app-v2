@@ -10,6 +10,9 @@ import {
   Utensils,
   CheckCircle2,
   Circle,
+  X,
+  ExternalLink,
+  BookOpen,
 } from "lucide-react";
 
 export function Dashboard() {
@@ -18,6 +21,7 @@ export function Dashboard() {
   const [activeMenu, setActiveMenu] = useState(null);
   const [incompleteLists, setIncompleteLists] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewingRecipe, setViewingRecipe] = useState(null);
 
   const fetchData = async () => {
     try {
@@ -133,27 +137,44 @@ export function Dashboard() {
     // Check if it's an @recipe mention
     let finalLabel = label;
     let finalUrl = url;
+    let hasExtraContent = !!url && !!label; // If it has both name and URL, it's viewable
+    let linkedRecipe = null;
 
     if (label.startsWith("@")) {
       const recipeName = label.slice(1).trim();
-      const linkedRecipe = recipes.find(
+      linkedRecipe = recipes.find(
         (r) => r.name.toLowerCase() === recipeName.toLowerCase(),
       );
       if (linkedRecipe) {
         finalLabel = linkedRecipe.name;
         finalUrl = linkedRecipe.link || finalUrl;
+        // It has extra content if it has instructions, ingredients, or a link with a name
+        hasExtraContent = !!(
+          linkedRecipe.instructions ||
+          linkedRecipe.ingredients ||
+          (linkedRecipe.link && linkedRecipe.name)
+        );
       }
     }
+
+    const handleMealClick = (e) => {
+      if (hasExtraContent) {
+        e.preventDefault();
+        setViewingRecipe(linkedRecipe || { name: finalLabel, link: finalUrl });
+      }
+    };
 
     return (
       <div
         key={meal.type}
         style={{ fontSize: "0.95rem", marginBottom: "0.2rem" }}
       >
-        <strong style={{ textTransform: "capitalize", color: "#666" }}>
+        <strong
+          style={{ textTransform: "capitalize", color: "var(--text-muted)" }}
+        >
           {meal.type}:
         </strong>{" "}
-        {finalUrl ? (
+        {finalUrl && !hasExtraContent ? (
           <a
             href={finalUrl}
             target="_blank"
@@ -166,7 +187,22 @@ export function Dashboard() {
             {finalLabel || finalUrl}
           </a>
         ) : (
-          finalLabel
+          <span
+            onClick={handleMealClick}
+            style={{
+              cursor: hasExtraContent ? "pointer" : "default",
+              color: hasExtraContent ? "var(--primary-color)" : "inherit",
+              textDecoration: hasExtraContent ? "underline" : "none",
+            }}
+          >
+            {finalLabel}
+            {hasExtraContent && (
+              <BookOpen
+                size={12}
+                style={{ marginLeft: "0.3rem", display: "inline" }}
+              />
+            )}
+          </span>
         )}
       </div>
     );
@@ -189,10 +225,39 @@ export function Dashboard() {
     const todayName = dayNames[now.getDay()];
     const tomorrowName = dayNames[(now.getDay() + 1) % 7];
 
-    return {
-      today: { name: todayName, meals: data.days[todayName] || [] },
-      tomorrow: { name: tomorrowName, meals: data.days[tomorrowName] || [] },
+    const sortMeals = (meals) => {
+      return [...(meals || [])].sort((a, b) => {
+        if (a.type.toLowerCase() === "lunch") return -1;
+        if (b.type.toLowerCase() === "lunch") return 1;
+        return 0;
+      });
     };
+
+    return {
+      today: { name: todayName, meals: sortMeals(data.days[todayName]) },
+      tomorrow: {
+        name: tomorrowName,
+        meals: sortMeals(data.days[tomorrowName]),
+      },
+    };
+  };
+
+  const renderIngredients = (ingredients) => {
+    if (!ingredients) return "";
+    
+    let items = [];
+    if (Array.isArray(ingredients)) {
+      items = ingredients.map(ig => {
+        if (typeof ig === 'string') return ig;
+        return ig.item || ig.name || JSON.stringify(ig);
+      });
+    } else if (typeof ingredients === 'string') {
+      items = ingredients.split(/,|\n/).map(item => item.trim()).filter(Boolean);
+    } else {
+      items = [String(ingredients)];
+    }
+    
+    return items.join('<br/>');
   };
 
   const { today, tomorrow } = getMenuDays();
@@ -205,7 +270,7 @@ export function Dashboard() {
             <h3
               style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
             >
-              <Zap size={20} color="var(--primary-color)" /> .quick
+              <Zap size={20} color="var(--primary-color)" /> Quick Save
             </h3>
             <SmartEditor onSave={handleQuickSave} />
           </section>
@@ -221,7 +286,7 @@ export function Dashboard() {
                 marginTop: 0,
               }}
             >
-              <Utensils size={20} color="var(--primary-color)" /> .active
+              <Utensils size={20} color="var(--primary-color)" /> Active Menu
             </h3>
             {activeMenu ? (
               <div
@@ -233,7 +298,7 @@ export function Dashboard() {
               >
                 <div
                   style={{
-                    borderBottom: "1px solid #eee",
+                    borderBottom: "1px solid var(--border-color)",
                     paddingBottom: "0.5rem",
                   }}
                 >
@@ -249,21 +314,34 @@ export function Dashboard() {
                     today.meals.map(renderMeal)
                   ) : (
                     <p
-                      style={{ fontStyle: "italic", color: "#888", margin: 0 }}
+                      style={{
+                        fontStyle: "italic",
+                        color: "var(--text-muted)",
+                        margin: 0,
+                      }}
                     >
                       No meals planned
                     </p>
                   )}
                 </div>
                 <div>
-                  <h4 style={{ margin: "0 0 0.5rem 0", color: "#888" }}>
+                  <h4
+                    style={{
+                      margin: "0 0 0.5rem 0",
+                      color: "var(--text-muted)",
+                    }}
+                  >
                     Tomorrow ({tomorrow.name})
                   </h4>
                   {tomorrow.meals.length > 0 ? (
                     tomorrow.meals.map(renderMeal)
                   ) : (
                     <p
-                      style={{ fontStyle: "italic", color: "#888", margin: 0 }}
+                      style={{
+                        fontStyle: "italic",
+                        color: "var(--text-muted)",
+                        margin: 0,
+                      }}
                     >
                       No meals planned
                     </p>
@@ -271,7 +349,7 @@ export function Dashboard() {
                 </div>
               </div>
             ) : (
-              <p style={{ fontStyle: "italic", color: "#666" }}>
+              <p style={{ fontStyle: "italic", color: "var(--text-muted)" }}>
                 No active menu
               </p>
             )}
@@ -287,7 +365,7 @@ export function Dashboard() {
               }}
             >
               <ClipboardList size={20} color="var(--primary-color)" />{" "}
-              .incomplete
+              Incomplete Lists
             </h3>
             {visibleLists.length > 0 ? (
               <div
@@ -303,7 +381,7 @@ export function Dashboard() {
                     <div
                       key={list.id}
                       style={{
-                        borderBottom: "1px solid #eee",
+                        borderBottom: "1px solid var(--border-color)",
                         paddingBottom: "0.8rem",
                       }}
                     >
@@ -315,7 +393,6 @@ export function Dashboard() {
                       <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
                         {listItems.map((item, idx) => {
                           if (item.items) {
-                            // Only show sub-items that aren't done
                             const incompleteSubs = item.items
                               .map((sub, sIdx) => ({
                                 ...sub,
@@ -337,7 +414,7 @@ export function Dashboard() {
                                   style={{
                                     fontSize: "0.8rem",
                                     fontWeight: "bold",
-                                    color: "#666",
+                                    color: "var(--text-muted)",
                                   }}
                                 >
                                   {item.category || item.name}
@@ -366,7 +443,10 @@ export function Dashboard() {
                                         padding: "0.2rem 0",
                                       }}
                                     >
-                                      <Circle size={14} color="#888" />
+                                      <Circle
+                                        size={14}
+                                        color="var(--text-muted)"
+                                      />
                                       <span style={{ fontSize: "0.9rem" }}>
                                         {sub.item || sub.name}
                                       </span>
@@ -377,7 +457,6 @@ export function Dashboard() {
                             );
                           }
 
-                          // Single item toggle
                           if (item.done) return null;
 
                           return (
@@ -393,7 +472,7 @@ export function Dashboard() {
                                 padding: "0.2rem 0",
                               }}
                             >
-                              <Circle size={14} color="#888" />
+                              <Circle size={14} color="var(--text-muted)" />
                               <span style={{ fontSize: "0.9rem" }}>
                                 {item.item || item.name}
                               </span>
@@ -406,13 +485,118 @@ export function Dashboard() {
                 })}
               </div>
             ) : (
-              <p style={{ fontStyle: "italic", color: "#666" }}>
+              <p style={{ fontStyle: "italic", color: "var(--text-muted)" }}>
                 No active lists
               </p>
             )}
           </section>
         </div>
       </div>
+
+      {/* Recipe Viewer Modal */}
+      {viewingRecipe && (
+        <div
+          className="modal-overlay"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.5)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000,
+            padding: "1rem",
+          }}
+        >
+          <div
+            className="card"
+            style={{
+              width: "100%",
+              maxWidth: "600px",
+              margin: 0,
+              maxHeight: "90vh",
+              overflowY: "auto",
+            }}
+          >
+            <div
+              className="flex justify-between items-center"
+              style={{
+                marginBottom: "1.5rem",
+                borderBottom: "1px solid var(--border-color)",
+                paddingBottom: "0.5rem",
+              }}
+            >
+              <h2 style={{ margin: 0 }}>{viewingRecipe.name}</h2>
+              <button
+                className="secondary"
+                onClick={() => setViewingRecipe(null)}
+                style={{ padding: "0.2rem" }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            {viewingRecipe.link && (
+              <div style={{ marginBottom: "1.5rem" }}>
+                <a
+                  href={viewingRecipe.link}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2"
+                  style={{ color: "var(--primary-color)", fontWeight: 600 }}
+                >
+                  <ExternalLink size={18} /> View Original Source
+                </a>
+              </div>
+            )}
+
+            {viewingRecipe.ingredients && (
+              <div style={{ marginBottom: "1.5rem" }}>
+                <h4 style={{ marginBottom: "0.5rem" }}>Ingredients</h4>
+                <div
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    padding: "1rem",
+                    background: "var(--gray-light)",
+                    borderRadius: "8px",
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: renderIngredients(viewingRecipe.ingredients)
+                  }}
+                />
+              </div>
+            )}
+
+            {viewingRecipe.instructions && (
+              <div style={{ marginBottom: "1rem" }}>
+                <h4 style={{ marginBottom: "0.5rem" }}>Instructions</h4>
+                <div
+                  style={{
+                    whiteSpace: "pre-wrap",
+                    padding: "1rem",
+                    background: "var(--gray-light)",
+                    borderRadius: "8px",
+                  }}
+                  dangerouslySetInnerHTML={{
+                    __html: typeof viewingRecipe.instructions === 'string' 
+                      ? viewingRecipe.instructions 
+                      : JSON.stringify(viewingRecipe.instructions),
+                  }}
+                />
+              </div>
+            )}
+
+            {!viewingRecipe.ingredients && !viewingRecipe.instructions && (
+              <p style={{ fontStyle: "italic", color: "var(--text-muted)" }}>
+                No additional details available for this recipe.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
