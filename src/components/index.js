@@ -1,4 +1,4 @@
 export * from './Auth';
 export * from './SmartEditor';
-export * as Tabs from './tabs';
-export * as Widgets from './widgets';
+export * from './tabs';
+export * from './widgets';

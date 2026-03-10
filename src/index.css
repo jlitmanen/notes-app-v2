@@ -207,14 +207,18 @@ select:focus {
 
 .nav-tabs {
     display: flex;
+    flex-direction: row; /* Force horizontal */
     gap: 0.5rem;
     width: 100%;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* Prevent vertical stack */
+    overflow-x: auto; /* Allow horizontal scroll if too many tabs */
+    padding-bottom: 0.2rem;
 }
 
 @media (min-width: 768px) {
     .nav-tabs {
         width: auto;
+        overflow-x: visible;
     }
 }
 

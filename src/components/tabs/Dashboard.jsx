@@ -3,8 +3,7 @@ import pb from "../../pocketbase";
 import { useNotes } from "../../hooks/useNotes";
 import { useRecipes } from "../../hooks/useRecipes";
 import { parseList } from "../../utils/parser";
-import { Widgets } from "../../components";
-const { QuickNoteWidget, ActiveMenuWidget, IncompleteListsWidget } = Widgets;
+import { QuickNoteWidget, ActiveMenuWidget, IncompleteListsWidget } from "../widgets";
 
 export function Dashboard() {
   const { saveItem } = useNotes();

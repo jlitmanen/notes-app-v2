@@ -1,7 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "./hooks/useAuth";
-import { Auth, Tabs } from "./components";
-const { Dashboard, NotesList, RecipesManager, Profile } = Tabs;
+import {
+  Auth,
+  Dashboard,
+  NotesList,
+  RecipesManager,
+  Profile,
+} from "./components";
 import {
   LogOut,
   LayoutDashboard,
@@ -42,9 +47,19 @@ function App() {
           }}
         >
           <h1 style={{ margin: 0 }}>.notes</h1>
+          <button
+            className="secondary"
+            onClick={toggleTheme}
+            style={{ padding: "0.4rem", borderRadius: "50%" }}
+            title={
+              theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"
+            }
+          >
+            {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
+          </button>
         </div>
         <div className="header-actions">
-          <nav className="flex items-center justify-between flex-wrap bg-teal-500 p-6">
+          <nav className="nav-tabs">
             <button
               className={activeTab === "dashboard" ? "" : "secondary"}
               onClick={() => setActiveTab("dashboard")}
@@ -73,18 +88,6 @@ function App() {
             </button>
           </nav>
           <div className="user-info">
-            <button
-              className="secondary"
-              onClick={toggleTheme}
-              style={{ padding: "0.4rem", borderRadius: "50%" }}
-              title={
-                theme === "light"
-                  ? "Switch to Dark Mode"
-                  : "Switch to Light Mode"
-              }
-            >
-              {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
-            </button>
             <span style={{ fontWeight: 600 }}>{user?.email}</span>
             <button
               onClick={logout}
