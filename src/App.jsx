@@ -1,10 +1,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "./hooks/useAuth";
-import { Auth } from "./components/Auth";
-import { Dashboard } from "./components/Dashboard";
-import { NotesList } from "./components/NotesList";
-import { RecipesManager } from "./components/RecipesManager";
-import { Profile } from "./components/Profile";
+import { Auth, Tabs } from "./components";
+const { Dashboard, NotesList, RecipesManager, Profile } = Tabs;
 import {
   LogOut,
   LayoutDashboard,
@@ -45,16 +42,6 @@ function App() {
           }}
         >
           <h1 style={{ margin: 0 }}>.notes</h1>
-          <button
-            className="secondary"
-            onClick={toggleTheme}
-            style={{ padding: "0.4rem", borderRadius: "50%" }}
-            title={
-              theme === "light" ? "Switch to Dark Mode" : "Switch to Light Mode"
-            }
-          >
-            {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
-          </button>
         </div>
         <div className="header-actions">
           <nav className="flex items-center justify-between flex-wrap bg-teal-500 p-6">
@@ -78,11 +65,27 @@ function App() {
               <Utensils size={18} />{" "}
               <span className="hide-mobile">Recipes</span>
             </button>
+            <button
+              className={activeTab === "profile" ? "" : "secondary"}
+              onClick={() => setActiveTab("profile")}
+            >
+              <User size={18} /> <span className="hide-mobile">Profile</span>
+            </button>
           </nav>
-          <div className="user-info" onClick={() => setActiveTab("profile")}>
-            <span style={{ fontWeight: 600 }}>
-              {user.name ? user.name : user.email}
-            </span>
+          <div className="user-info">
+            <button
+              className="secondary"
+              onClick={toggleTheme}
+              style={{ padding: "0.4rem", borderRadius: "50%" }}
+              title={
+                theme === "light"
+                  ? "Switch to Dark Mode"
+                  : "Switch to Light Mode"
+              }
+            >
+              {theme === "light" ? <Moon size={20} /> : <Sun size={20} />}
+            </button>
+            <span style={{ fontWeight: 600 }}>{user?.email}</span>
             <button
               onClick={logout}
               className="secondary"

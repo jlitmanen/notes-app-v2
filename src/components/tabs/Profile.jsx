@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useAuth } from "../hooks/useAuth";
-import pb from "../pocketbase";
+import { useAuth } from "../../hooks/useAuth";
+import pb from "../../pocketbase";
 import { User, Save, Settings, Users } from "lucide-react";
 
 export function Profile() {
