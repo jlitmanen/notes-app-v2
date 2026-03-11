@@ -3,7 +3,11 @@ import pb from "../../pocketbase";
 import { useNotes } from "../../hooks/useNotes";
 import { useRecipes } from "../../hooks/useRecipes";
 import { parseList } from "../../utils/parser";
-import { QuickNoteWidget, ActiveMenuWidget, IncompleteListsWidget } from "../widgets";
+import {
+  QuickNoteWidget,
+  ActiveMenuWidget,
+  IncompleteListsWidget,
+} from "../widgets";
 
 export function Dashboard() {
   const { saveItem } = useNotes();
@@ -61,7 +65,6 @@ export function Dashboard() {
 
   const handleQuickSave = async (data) => {
     await saveItem(data);
-    alert("Note saved!");
   };
 
   const getParsedListData = (list) => {

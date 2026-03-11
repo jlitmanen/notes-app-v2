@@ -14,12 +14,14 @@ import {
   Users,
   X,
   Check,
+  ChevronLeft
 } from "lucide-react";
 
 export function NotesList() {
   const { items, loading, saveItem, deleteItem, updateSharing } = useNotes();
   const { groups } = useGroups();
   const [editingItem, setEditingItem] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
   const [sharingItem, setSharingItem] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
@@ -49,9 +51,10 @@ export function NotesList() {
     setEditingItem(item);
   };
 
-  const onSaveEdit = async (data) => {
-    await saveItem(data, editingItem.id);
+  const onSaveItem = async (data) => {
+    await saveItem(data, editingItem?.id);
     setEditingItem(null);
+    setIsAdding(false);
   };
 
   const toggleGroupSelection = (groupId) => {
@@ -68,8 +71,9 @@ export function NotesList() {
     setSharingItem(null);
   };
 
-  if (editingItem) {
+  if (editingItem || isAdding) {
     const getEditableData = (item) => {
+      if (!item) return "";
       if (typeof item.data === "string") return item.data;
       if (item.type === "list") return deparseList(item.data);
       if (item.type === "menu") return deparseMenu(item.data);
@@ -86,17 +90,17 @@ export function NotesList() {
             marginBottom: "1rem",
           }}
         >
-          <h2>Editing {editingItem.type}</h2>
-          <button className="secondary" onClick={() => setEditingItem(null)}>
-            Cancel
+          <button className="secondary" onClick={() => { setEditingItem(null); setIsAdding(false); }}>
+            <ChevronLeft size={18} /> Back to Library
           </button>
+          <h2>{isAdding ? "Create New" : `Editing ${editingItem?.type}`}</h2>
         </div>
         <SmartEditor
-          onSave={onSaveEdit}
-          initialData={{
-            title: editingItem.title,
+          onSave={onSaveItem}
+          initialData={isAdding ? null : {
+            title: editingItem?.title,
             data: getEditableData(editingItem),
-            mode: editingItem.type,
+            mode: editingItem?.type,
           }}
         />
       </div>
@@ -124,15 +128,21 @@ export function NotesList() {
               style={{ paddingLeft: "2.5rem" }}
             />
           </div>
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-          >
-            <option value="all">All Types</option>
-            <option value="note">Notes</option>
-            <option value="list">Lists</option>
-            <option value="menu">Menus</option>
-          </select>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              style={{ flex: 1 }}
+            >
+              <option value="all">All Types</option>
+              <option value="note">Notes</option>
+              <option value="list">Lists</option>
+              <option value="menu">Menus</option>
+            </select>
+            <button onClick={() => setIsAdding(true)} title="Create New">
+              <Plus size={20} /> <span className="hide-mobile">New</span>
+            </button>
+          </div>
         </div>
       </div>
 

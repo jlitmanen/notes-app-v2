@@ -1,14 +1,31 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import { parseList, parseMenu } from "../utils/parser";
 import { useRecipes } from "../hooks/useRecipes";
-import { FileText, List, Utensils, Eye, Save, AtSign } from "lucide-react";
+import {
+  FileText,
+  List,
+  Utensils,
+  Eye,
+  Save,
+  AtSign,
+  Loader2,
+} from "lucide-react";
 
 export function SmartEditor({ onSave, initialData = null }) {
   const [content, setContent] = useState(initialData?.data || "");
   const [title, setTitle] = useState(initialData?.title || "");
   const [mode, setMode] = useState(initialData?.mode || "note");
   const [preview, setPreview] = useState(false);
-  const [parsedData, setParsedData] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const parsedData = useMemo(() => {
+    if (mode === "list") {
+      return parseList(content);
+    } else if (mode === "menu") {
+      return parseMenu(content);
+    }
+    return null;
+  }, [content, mode]);
 
   // Recipe Picker State
   const { recipes } = useRecipes();
@@ -16,16 +33,6 @@ export function SmartEditor({ onSave, initialData = null }) {
   const [pickerFilter, setPickerFilter] = useState("");
   const [cursorPos, setCursorPos] = useState(0);
   const textareaRef = useRef(null);
-
-  useEffect(() => {
-    if (mode === "list") {
-      setParsedData(parseList(content));
-    } else if (mode === "menu") {
-      setParsedData(parseMenu(content));
-    } else {
-      setParsedData(null);
-    }
-  }, [content, mode]);
 
   const handleTextChange = (e) => {
     const val = e.target.value;
@@ -54,8 +61,23 @@ export function SmartEditor({ onSave, initialData = null }) {
     textareaRef.current.focus();
   };
 
-  const handleSave = () => {
-    onSave({ title, content, mode, parsedData });
+  const handleSave = async () => {
+    if (!content.trim() && !title.trim()) return;
+
+    setIsSaving(true);
+    try {
+      await onSave({ title, content, mode, parsedData });
+      // Only clear if it was a "new" note (not editing)
+      if (!initialData) {
+        setContent("");
+        setTitle("");
+        setPreview(false);
+      }
+    } catch (err) {
+      console.error("Save failed:", err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const filteredRecipes = recipes.filter((r) =>
@@ -70,6 +92,7 @@ export function SmartEditor({ onSave, initialData = null }) {
         flexDirection: "column",
         gap: "1rem",
         position: "relative",
+        padding: "1rem",
       }}
     >
       <input
@@ -83,53 +106,32 @@ export function SmartEditor({ onSave, initialData = null }) {
         className="toolbar"
         style={{
           display: "flex",
-          gap: "0.5rem",
+          gap: "0.25rem",
           background: "var(--gray-light)",
-          padding: "0.5rem",
+          padding: "0.25rem",
           borderRadius: "8px",
         }}
       >
         <button
           onClick={() => setMode("note")}
           className={mode === "note" ? "" : "secondary"}
-          style={{
-            flex: 1,
-            padding: "0.5rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.4rem",
-          }}
+          style={{ flex: 1, padding: "0.5rem 0.25rem", fontSize: "0.85rem" }}
         >
-          <FileText size={18} /> Note
+          <FileText size={16} /> <span className="hide-mobile">Note</span>
         </button>
         <button
           onClick={() => setMode("list")}
           className={mode === "list" ? "" : "secondary"}
-          style={{
-            flex: 1,
-            padding: "0.5rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.4rem",
-          }}
+          style={{ flex: 1, padding: "0.5rem 0.25rem", fontSize: "0.85rem" }}
         >
-          <List size={18} /> List
+          <List size={16} /> <span className="hide-mobile">List</span>
         </button>
         <button
           onClick={() => setMode("menu")}
           className={mode === "menu" ? "" : "secondary"}
-          style={{
-            flex: 1,
-            padding: "0.5rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.4rem",
-          }}
+          style={{ flex: 1, padding: "0.5rem 0.25rem", fontSize: "0.85rem" }}
         >
-          <Utensils size={18} /> Menu
+          <Utensils size={16} /> <span className="hide-mobile">Menu</span>
         </button>
       </div>
 
@@ -142,20 +144,20 @@ export function SmartEditor({ onSave, initialData = null }) {
             onKeyUp={(e) => setCursorPos(e.target.selectionStart)}
             onMouseUp={(e) => setCursorPos(e.target.selectionStart)}
             placeholder={`Enter your ${mode}... Use @ to link recipes.`}
-            style={{ minHeight: "300px", resize: "vertical" }}
+            style={{ minHeight: "200px", resize: "vertical" }}
           />
         ) : (
           <div
             className="preview-container"
             style={{
-              minHeight: "300px",
-              border: "1px solid #ccc",
+              minHeight: "200px",
+              border: "1px solid var(--border-color)",
               borderRadius: "8px",
               padding: "1rem",
               overflowY: "auto",
+              background: "var(--white)",
             }}
           >
-            {/* Preview logic remains same as before */}
             {mode === "note" && (
               <div
                 dangerouslySetInnerHTML={{
@@ -163,13 +165,12 @@ export function SmartEditor({ onSave, initialData = null }) {
                 }}
               />
             )}
-            {/* ... (rest of preview logic) */}
             {mode === "list" && (
               <div>
                 {parsedData?.map((item, idx) =>
                   item.items ? (
                     <div key={idx} style={{ marginBottom: "1rem" }}>
-                      <strong>{item.name}</strong>
+                      <strong>{item.category || item.name}</strong>
                       <ul style={{ listStyle: "none", paddingLeft: "1rem" }}>
                         {item.items.map((sub, i) => (
                           <li key={i}>
@@ -178,14 +179,15 @@ export function SmartEditor({ onSave, initialData = null }) {
                               readOnly
                               checked={sub.done}
                             />{" "}
-                            {sub.name}
+                            {sub.item || sub.name}
                           </li>
                         ))}
                       </ul>
                     </div>
                   ) : (
                     <div key={idx}>
-                      <input type="checkbox" readOnly /> {item.name}
+                      <input type="checkbox" readOnly />{" "}
+                      {item.item || item.name}
                     </div>
                   ),
                 )}
@@ -246,17 +248,17 @@ export function SmartEditor({ onSave, initialData = null }) {
               width: "100%",
               maxHeight: "200px",
               overflowY: "auto",
-              background: "white",
+              background: "var(--white)",
               border: "2px solid var(--primary-color)",
               borderRadius: "8px",
               zIndex: 10,
-              boxShadow: "0 -4px 12px rgba(0,0,0,0.1)",
+              boxShadow: "0 -4px 12px var(--card-shadow)",
             }}
           >
             <div
               style={{
                 padding: "0.5rem",
-                borderBottom: "1px solid #eee",
+                borderBottom: "1px solid var(--border-color)",
                 background: "var(--gray-light)",
                 fontSize: "0.8rem",
                 display: "flex",
@@ -274,10 +276,10 @@ export function SmartEditor({ onSave, initialData = null }) {
                   style={{
                     padding: "0.8rem",
                     cursor: "pointer",
-                    borderBottom: "1px solid #f9f9f9",
+                    borderBottom: "1px solid var(--border-color)",
                   }}
                   onMouseEnter={(e) =>
-                    (e.target.style.background = "var(--bg-color)")
+                    (e.target.style.background = "var(--gray-light)")
                   }
                   onMouseLeave={(e) =>
                     (e.target.style.background = "transparent")
@@ -288,7 +290,11 @@ export function SmartEditor({ onSave, initialData = null }) {
               ))
             ) : (
               <div
-                style={{ padding: "1rem", color: "#888", fontStyle: "italic" }}
+                style={{
+                  padding: "1rem",
+                  color: "var(--text-muted)",
+                  fontStyle: "italic",
+                }}
               >
                 No recipes found
               </div>
@@ -301,27 +307,17 @@ export function SmartEditor({ onSave, initialData = null }) {
         <button
           onClick={() => setPreview(!preview)}
           className="secondary"
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.5rem",
-          }}
+          style={{ flex: 1 }}
         >
           <Eye size={18} /> {preview ? "Edit" : "Preview"}
         </button>
-        <button
-          onClick={handleSave}
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: "0.5rem",
-          }}
-        >
-          <Save size={18} /> Save
+        <button onClick={handleSave} disabled={isSaving} style={{ flex: 1 }}>
+          {isSaving ? (
+            <Loader2 size={18} className="animate-spin" />
+          ) : (
+            <Save size={18} />
+          )}
+          {isSaving ? "Saving..." : "Save"}
         </button>
       </div>
     </div>

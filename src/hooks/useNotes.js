@@ -11,43 +11,38 @@ export function useNotes() {
       const user = pb.authStore.record;
       if (!user) return;
 
-      // In PocketBase, a multi-relation 'groups' is an array of IDs.
-      // We check if item's groups contains any of our groups.
-      const userGroups = user.groups || [];
+      const userGroup = user.group;
       const filterParts = [`user = "${user.id}"`];
 
-      if (userGroups.length > 0) {
-        userGroups.forEach((gId) => {
-          filterParts.push(`groups ~ "${gId}"`);
-        });
+      if (userGroup) {
+        // Handle both single string and array for group filtering
+        if (Array.isArray(userGroup)) {
+          userGroup.forEach((gId) => {
+            filterParts.push(`group ~ "${gId}"`);
+          });
+        } else {
+          filterParts.push(`group = "${userGroup}"`);
+        }
       }
 
       const filter = filterParts.join(" || ");
 
-      // Fetch from all three collections
       const [notesRes, listsRes, menusRes] = await Promise.allSettled([
-        pb
-          .collection("notes")
-          .getFullList({ filter, sort: "-created", requestKey: "notes" }),
-        pb
-          .collection("lists")
-          .getFullList({ filter, sort: "-created", requestKey: "lists" }),
-        pb
-          .collection("menus")
-          .getFullList({ filter, sort: "-created", requestKey: "menus" }),
+        pb.collection("notes").getFullList({ filter, sort: "-created", requestKey: "notes" }),
+        pb.collection("lists").getFullList({ filter, sort: "-created", requestKey: "lists" }),
+        pb.collection("menus").getFullList({ filter, sort: "-created", requestKey: "menus" }),
       ]);
 
       const notes = notesRes.status === "fulfilled" ? notesRes.value : [];
       const lists = listsRes.status === "fulfilled" ? listsRes.value : [];
       const menus = menusRes.status === "fulfilled" ? menusRes.value : [];
 
-      // Tag them with their type for the UI
       const combined = [
         ...notes.map((n) => ({
           ...n,
           type: "note",
           title: n.title || n.name || "Untitled Note",
-          data: n.data,
+          data: n.data || n.content,
         })),
         ...lists.map((l) => ({
           ...l,
@@ -78,32 +73,34 @@ export function useNotes() {
 
   const saveItem = async (data, id = null) => {
     try {
+      const user = pb.authStore.record;
       let collectionName = "notes";
+      
+      // Basic structure
       let formattedData = {
-        title: data.title,
-        data: data.content || data.data,
-        user: pb.authStore.record.id,
+        title: data.title || "Untitled",
+        user: user.id,
+        group: user.group || "", // Include group by default for new items
       };
 
+      // Handle content field based on collection
+      const contentValue = data.content || data.data || "";
+      
       if (data.mode === "list") {
         collectionName = "lists";
-        formattedData = {
-          title: data.title,
-          data: data.parsedData || data.data,
-          user: pb.authStore.record.id,
-        };
+        formattedData.data = data.parsedData || data.data;
       } else if (data.mode === "menu") {
         collectionName = "menus";
-        formattedData = {
-          title: data.title,
-          start: data.parsedData?.start
-            ? new Date(data.parsedData.start)
-            : null,
-          end: data.parsedData?.end ? new Date(data.parsedData.end) : null,
-          data: data.parsedData || data.data,
-          user: pb.authStore.record.id,
-        };
+        formattedData.data = data.parsedData || data.data;
+        formattedData.start = data.parsedData?.start ? new Date(data.parsedData.start) : null;
+        formattedData.end = data.parsedData?.end ? new Date(data.parsedData.end) : null;
+      } else {
+        // For notes, provide both 'data' and 'content' just in case
+        formattedData.data = contentValue;
+        formattedData.content = contentValue;
       }
+
+      console.log(`Saving to ${collectionName}:`, formattedData);
 
       let record;
       if (id) {
@@ -115,20 +112,14 @@ export function useNotes() {
       fetchAll();
       return record;
     } catch (err) {
-      console.error("Error saving item:", err);
+      console.error("Error saving item detailed:", err.response || err);
       throw err;
     }
   };
 
   const updateSharing = async (item, groupIds) => {
     try {
-      const collectionName =
-        item.type === "note"
-          ? "notes"
-          : item.type === "list"
-            ? "lists"
-            : "menus";
-
+      const collectionName = item.type === "note" ? "notes" : (item.type === "list" ? "lists" : "menus");
       await pb.collection(collectionName).update(item.id, {
         group: groupIds,
       });
@@ -141,8 +132,7 @@ export function useNotes() {
 
   const deleteItem = async (type, id) => {
     try {
-      const collectionName =
-        type === "note" ? "notes" : type === "list" ? "lists" : "menus";
+      const collectionName = type === "note" ? "notes" : (type === "list" ? "lists" : "menus");
       await pb.collection(collectionName).delete(id);
       fetchAll();
     } catch (err) {
