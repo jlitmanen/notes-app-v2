@@ -210,7 +210,12 @@ export function SmartEditor({ onSave, initialData = null }) {
                 <p>
                   {parsedData?.start} - {parsedData?.end}
                 </p>
-                {Object.entries(parsedData?.days || {}).map(([day, meals]) => (
+                {(Array.isArray(parsedData?.days)
+                  ? parsedData.days
+                  : Object.entries(parsedData?.days || {}).map(
+                      ([day, meals]) => ({ day, meals }),
+                    )
+                ).map(({ day, meals }) => (
                   <div key={day} style={{ marginBottom: "1rem" }}>
                     <h4
                       style={{

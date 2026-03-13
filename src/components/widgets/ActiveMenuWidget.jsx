@@ -102,8 +102,16 @@ export function ActiveMenuWidget({ activeMenu, recipes }) {
     });
   };
 
-  const todayMeals = sortMeals(menuData?.days?.[todayName]);
-  const tomorrowMeals = sortMeals(menuData?.days?.[tomorrowName]);
+  const getMealsForDay = (days, dayName) => {
+    if (!days) return [];
+    if (Array.isArray(days)) {
+      return days.find((d) => d.day === dayName)?.meals || [];
+    }
+    return days[dayName] || [];
+  };
+
+  const todayMeals = sortMeals(getMealsForDay(menuData?.days, todayName));
+  const tomorrowMeals = sortMeals(getMealsForDay(menuData?.days, tomorrowName));
 
   return (
     <section className="card" style={{ marginBottom: "2rem" }}>

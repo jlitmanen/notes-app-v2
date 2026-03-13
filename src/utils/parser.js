@@ -39,10 +39,10 @@ export const parseMenu = (text) => {
     active: false,
     start: null,
     end: null,
-    days: {}
+    days: [] // Use array to preserve order
   };
 
-  let currentDay = null;
+  let currentDayEntry = null;
 
   lines.forEach(line => {
     const trimmed = line.trim().toLowerCase();
@@ -55,13 +55,17 @@ export const parseMenu = (text) => {
     } else if (trimmed.startsWith('to ')) {
       menuData.end = trimmed.replace('to ', '').trim();
     } else if (['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].includes(trimmed)) {
-      currentDay = trimmed;
-      menuData.days[currentDay] = [];
-    } else if (currentDay && trimmed.includes(':')) {
+      // Check if we already have this day to avoid duplicates (though usually we'll just push)
+      currentDayEntry = menuData.days.find(d => d.day === trimmed);
+      if (!currentDayEntry) {
+        currentDayEntry = { day: trimmed, meals: [] };
+        menuData.days.push(currentDayEntry);
+      }
+    } else if (currentDayEntry && trimmed.includes(':')) {
       const parts = line.split(':');
       const type = parts[0].trim();
       const recipe = parts.slice(1).join(':').trim();
-      menuData.days[currentDay].push({ type, recipe });
+      currentDayEntry.meals.push({ type, recipe });
     }
   });
 
@@ -96,7 +100,7 @@ export const deparseMenu = (data) => {
   let text = '';
 
   // Migration path for external JSON format (dates as keys, nested name/recipeId)
-  if (data.days && !Array.isArray(Object.values(data.days)[0])) {
+  if (data.days && !Array.isArray(data.days) && !Array.isArray(Object.values(data.days)[0])) {
     const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
     const sortedDates = Object.keys(data.days).sort();
     
@@ -127,11 +131,21 @@ export const deparseMenu = (data) => {
   if (data.start) text += `from ${data.start}\n`;
   if (data.end) text += `to ${data.end}\n`;
   
-  Object.entries(data.days || {}).forEach(([day, meals]) => {
-    text += `${day}\n`;
-    meals.forEach(meal => {
-      text += ` ${meal.type}: ${meal.recipe}\n`;
+  if (Array.isArray(data.days)) {
+    data.days.forEach(({ day, meals }) => {
+      text += `${day}\n`;
+      meals.forEach(meal => {
+        text += ` ${meal.type}: ${meal.recipe}\n`;
+      });
     });
-  });
+  } else {
+    // Legacy object support
+    Object.entries(data.days || {}).forEach(([day, meals]) => {
+      text += `${day}\n`;
+      meals.forEach(meal => {
+        text += ` ${meal.type}: ${meal.recipe}\n`;
+      });
+    });
+  }
   return text;
 };
