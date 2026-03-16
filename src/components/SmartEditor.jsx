@@ -1,6 +1,7 @@
 import { useState, useRef, useMemo } from "react";
 import { parseList, parseMenu } from "../utils/parser";
 import { useRecipes } from "../hooks/useRecipes";
+import { EditorGuide } from "./EditorGuide";
 import {
   FileText,
   List,
@@ -9,6 +10,7 @@ import {
   Save,
   AtSign,
   Loader2,
+  HelpCircle,
 } from "lucide-react";
 
 export function SmartEditor({ onSave, initialData = null }) {
@@ -17,6 +19,7 @@ export function SmartEditor({ onSave, initialData = null }) {
   const [mode, setMode] = useState(initialData?.mode || "note");
   const [preview, setPreview] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
 
   const parsedData = useMemo(() => {
     if (mode === "list") {
@@ -95,12 +98,24 @@ export function SmartEditor({ onSave, initialData = null }) {
         padding: "1rem",
       }}
     >
-      <input
-        placeholder="Title..."
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        style={{ fontSize: "1.2rem", fontWeight: "bold" }}
-      />
+      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <input
+          placeholder="Title..."
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          style={{ fontSize: "1.2rem", fontWeight: "bold", flex: 1 }}
+        />
+        <button
+          className="secondary"
+          onClick={() => setShowGuide(true)}
+          style={{ padding: "0.6rem", borderRadius: "8px" }}
+          title="Show Editor Guide"
+        >
+          <HelpCircle size={20} />
+        </button>
+      </div>
+
+      <EditorGuide isOpen={showGuide} onClose={() => setShowGuide(false)} />
 
       <div
         className="toolbar"

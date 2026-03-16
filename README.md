@@ -7,11 +7,12 @@ A minimalist, smart note-taking application designed for speed and organization.
 -   **Smart Editor**: A unified editor that handles multiple formats:
     -   **Notes**: Standard text notes.
     -   **Lists**: Automatically parsed lists (using shorthand like `Category: \n - Item`).
-    -   **Menus**: Weekly meal planning with date ranges and daily meal slots.
+    -   **Menus**: Weekly meal planning with date ranges and daily meal slots. Preserves the exact order of days as you saved them.
+-   **Editor Guide**: A built-in reference guide accessible directly from the editor for quick shorthand lookups.
 -   **Recipe Integration**: Link recipes to your menus using the `@` symbol (e.g., `@Spaghetti Carbonara`).
 -   **Dashboard Widgets**:
     -   **Quick Note**: Capture thoughts instantly.
-    -   **Active Menu**: View your current meal plan at a glance.
+    -   **Active Menu**: View "Today" and "Tomorrow" at a glance, with an expandable full-week view that intelligently hides past days.
     -   **Incomplete Lists**: Quick access to your pending to-do or shopping lists.
 -   **Real-time Collaboration**: Powered by PocketBase subscriptions for instant updates across devices.
 -   **Sharing & Groups**: Share notes, lists, and menus with specific groups.
@@ -67,9 +68,10 @@ To fully utilize the app, ensure your PocketBase instance has the following coll
 
 ## 📝 Usage Tips
 
+-   **Editor Guide**: Click the `?` icon in the editor to view the shorthand reference guide for Lists and Menus.
 -   **Parsing Lists**: In the editor, switch to "List" mode. Type a category ending with a colon (e.g., `Groceries:`) followed by items starting with a hyphen (e.g., `- Milk`). The app will parse this into an interactive checklist.
 -   **Recipe Linking**: When editing a "Menu", type `@` to search and link your existing recipes to specific meal slots.
--   **Quick Access**: Use the Dashboard to quickly mark items as "done" without opening the full editor.
+-   **Active Menus**: Use the `active` keyword in a Menu note to display it prominently on your Dashboard.
 
 ## 📄 License
 
